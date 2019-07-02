@@ -15,8 +15,6 @@ discordClient.once('ready', () => {
 })
 
 discordClient.on('message', async message => {
-  console.log(message.content)
-  
   if (!message.content.startsWith(prefix) || message.author.bot) return
 
   message.channel.startTyping()
@@ -46,5 +44,7 @@ discordClient.on('message', async message => {
   message.channel.stopTyping()
 
 })
+
+process.on('unhandledRejection', error => console.error('Uncaught Promise Rejection', error))
 
 discordClient.login(BOT_TOKEN)
