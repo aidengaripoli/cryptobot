@@ -1,6 +1,5 @@
 const Discord = require('discord.js')
 const CoinGecko = require('coingecko-api')
-// const fetch = require('node-fetch')
 require('dotenv').config()
 
 const { BOT_TOKEN } = process.env
@@ -9,6 +8,8 @@ const discordClient = new Discord.Client()
 const coinGeckoClient = new CoinGecko()
 
 const prefix = '!'
+
+const previousValues = {}
 
 discordClient.once('ready', () => {
   console.log('ready')
@@ -28,13 +29,21 @@ discordClient.on('message', async message => {
   const command = args.shift().toLowerCase()
   const coin = args.shift().toLowerCase()
 
-  console.log(command, coin)
-
   if (command === 'price') {
     try {
       const body = await coinGeckoClient.simple.price({ ids: coin, vs_currencies: 'aud' })
-      console.log(body.data[coin].aud)
-      message.channel.send(`$${body.data[coin].aud} AUD.`)
+      const coinValueAud = body.data[coin].aud
+
+      let output = `$${coinValueAud} AUD`
+
+      if (previousValues[coin]) {
+        const differenceString = calculateDifferenceString(coin, coinValueAud)
+        output = output.concat(differenceString)
+      }
+
+      message.channel.send(`${output}.`)
+
+      previousValues[coin] = coinValueAud
     } catch (err) {
       console.log('err getting coin')
       message.channel.send(`No results found for '${coin}'.`)
@@ -44,6 +53,21 @@ discordClient.on('message', async message => {
   message.channel.stopTyping()
 
 })
+
+const calculateDifferenceString = (coin, coinValueAud) => {
+  const previousValue = previousValues[coin]
+
+  const difference = coinValueAud - previousValue
+  const sign = '+'
+
+  if (difference < 0) {
+    sign = '-'
+  } else if (difference > 0) {
+    sign = '+'
+  }
+
+  return ` (${sign}${difference})`
+}
 
 process.on('unhandledRejection', error => console.error('Uncaught Promise Rejection', error))
 
