@@ -58,7 +58,7 @@ const calculateDifferenceString = (coin, coinValueAud) => {
   const previousValue = previousValues[coin]
 
   const difference = coinValueAud - previousValue
-  const sign = '+'
+  let sign = '+'
 
   if (difference < 0) {
     sign = '-'
