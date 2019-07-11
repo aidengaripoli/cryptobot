@@ -1,15 +1,23 @@
+const fs = require('fs')
 const Discord = require('discord.js')
-const CoinGecko = require('coingecko-api')
 require('dotenv').config()
 
 const { BOT_TOKEN } = process.env
+const { prefix } = require('./config.json')
 
 const discordClient = new Discord.Client()
-const coinGeckoClient = new CoinGecko()
 
-const prefix = '!'
+discordClient.commands = new Discord.Collection()
+const commandFiles = fs
+  .readdirSync('./commands')
+  .filter(file => file.endsWith('.js'))
 
-const previousValues = {}
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`)
+  discordClient.commands.set(command.name, command)
+}
+
+const cooldowns = new Discord.Collection()
 
 discordClient.once('ready', () => {
   console.log('ready')
@@ -18,58 +26,58 @@ discordClient.once('ready', () => {
 discordClient.on('message', async message => {
   if (!message.content.startsWith(prefix) || message.author.bot) return
 
-  message.channel.startTyping()
-
   const args = message.content.slice(prefix.length).split(/ +/)
+  const commandName = args.shift().toLowerCase()
 
-  if (args.length < 2) {
-    message.channel.send('invalid command')
+  const command =
+    discordClient.commands.get(commandName) ||
+    discordClient.commands.find(
+      cmd => cmd.aliases && cmd.aliases.includes(commandName)
+    )
+
+  if (!command) return
+
+  if (command.args && !args.length) {
+    let reply = 'Invalid number of arguments.'
+
+    if (command.usage) {
+      reply += `\nUsage: \`${prefix}${command.name} ${command.usage}\``
+    }
+
+    return message.channel.send(reply)
   }
 
-  const command = args.shift().toLowerCase()
-  const coin = args.shift().toLowerCase()
+  if (!cooldowns.has(command.name)) {
+    cooldowns.set(command.name, new Discord.Collection())
+  }
 
-  if (command === 'price') {
-    try {
-      const body = await coinGeckoClient.simple.price({
-        ids: coin,
-        vs_currencies: 'aud'
-      })
-      const coinValueAud = body.data[coin].aud
+  const now = Date.now()
+  const timestamps = cooldowns.get(command.name)
+  const cooldownAmount = (command.cooldown || 3) * 1000
 
-      let output = `$${coinValueAud} AUD`
+  if (timestamps.has(message.author.id)) {
+    const expirationTime = timestamps.get(message.author.id) + cooldownAmount
 
-      if (previousValues[coin]) {
-        const differenceString = calculateDifferenceString(coin, coinValueAud)
-        output = output.concat(differenceString)
-      }
-
-      message.channel.send(`${output}.`)
-
-      previousValues[coin] = coinValueAud
-    } catch (err) {
-      console.log('err getting coin')
-      message.channel.send(`No results found for '${coin}'.`)
+    if (now < expirationTime) {
+      const timeLeft = (expirationTime - now) / 1000
+      return message.reply(
+        `Please wait ${timeLeft.toFixed(
+          1
+        )} more second(s) before reusing the \`${command.name}\` command.`
+      )
     }
   }
 
-  message.channel.stopTyping()
-})
+  timestamps.set(message.author.id, now)
+  setTimeout(() => timestamps.delete(message.author.id), cooldownAmount)
 
-const calculateDifferenceString = (coin, coinValueAud) => {
-  const previousValue = previousValues[coin]
-
-  const difference = coinValueAud - previousValue
-  let sign = '+'
-
-  if (difference < 0) {
-    sign = '-'
-  } else if (difference > 0) {
-    sign = '+'
+  try {
+    command.execute(message, args)
+  } catch (err) {
+    console.error(err)
+    message.reply('There was an error executing the command.')
   }
-
-  return ` (${sign}${difference})`
-}
+})
 
 process.on('unhandledRejection', error =>
   console.error('Uncaught Promise Rejection', error)
