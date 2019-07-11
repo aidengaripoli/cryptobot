@@ -31,7 +31,10 @@ discordClient.on('message', async message => {
 
   if (command === 'price') {
     try {
-      const body = await coinGeckoClient.simple.price({ ids: coin, vs_currencies: 'aud' })
+      const body = await coinGeckoClient.simple.price({
+        ids: coin,
+        vs_currencies: 'aud'
+      })
       const coinValueAud = body.data[coin].aud
 
       let output = `$${coinValueAud} AUD`
@@ -51,7 +54,6 @@ discordClient.on('message', async message => {
   }
 
   message.channel.stopTyping()
-
 })
 
 const calculateDifferenceString = (coin, coinValueAud) => {
@@ -69,6 +71,8 @@ const calculateDifferenceString = (coin, coinValueAud) => {
   return ` (${sign}${difference})`
 }
 
-process.on('unhandledRejection', error => console.error('Uncaught Promise Rejection', error))
+process.on('unhandledRejection', error =>
+  console.error('Uncaught Promise Rejection', error)
+)
 
 discordClient.login(BOT_TOKEN)
