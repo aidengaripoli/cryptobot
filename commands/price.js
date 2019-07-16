@@ -50,7 +50,10 @@ module.exports = {
     }
 
     const difference = coinValueAud - previousValue
+    const differencePercentage = (difference / previousValue) * 100
 
-    return ` (${difference >= 0 ? '+' : ''}${difference.toFixed(2)})`
+    return ` (${
+      differencePercentage >= 0 ? '+' : ''
+    }${differencePercentage.toFixed(2)}%)`
   }
 }
