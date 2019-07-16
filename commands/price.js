@@ -25,26 +25,32 @@ module.exports = {
 
       let output = `$${coinValueAud} AUD`
 
-      if (previousValues[coin]) {
-        const differenceString = calculateDifferenceString(coin, coinValueAud)
-        output = output.concat(differenceString)
-      }
+      const differenceString = this.calculateDifferenceString(
+        coin,
+        coinValueAud,
+        previousValues
+      )
+      output = output.concat(differenceString)
 
       message.channel.send(`${output}.`)
 
       previousValues[coin] = coinValueAud
     } catch (err) {
+      console.error(err.message)
       message.channel.send(`No results found for '${coin}'.`)
     }
 
     message.channel.stopTyping()
+  },
+  calculateDifferenceString(coin, coinValueAud, previousValues) {
+    const previousValue = previousValues[coin]
+
+    if (!previousValue) {
+      return ''
+    }
+
+    const difference = coinValueAud - previousValue
+
+    return ` (${difference >= 0 ? '+' : ''}${difference.toFixed(2)})`
   }
-}
-
-const calculateDifferenceString = (coin, coinValueAud) => {
-  const previousValue = previousValues[coin]
-
-  const difference = coinValueAud - previousValue
-
-  return ` (${difference > 0 ? '+' : ''}${difference})`
 }
