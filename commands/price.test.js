@@ -15,7 +15,7 @@ test('it appends the correct change in value when the price increases', () => {
     bitcoin: 14287.89
   })
 
-  expect(result).toBe(' (+1070.56)')
+  expect(result).toBe(' (+7.49%)')
 })
 
 test('it appends the correct change in value when the price decreases', () => {
@@ -23,7 +23,7 @@ test('it appends the correct change in value when the price decreases', () => {
     bitcoin: 17864.21
   })
 
-  expect(result).toBe(' (-2505.76)')
+  expect(result).toBe(' (-14.03%)')
 })
 
 test('it appends the correct change in value when the price stays the same', () => {
@@ -31,5 +31,13 @@ test('it appends the correct change in value when the price stays the same', () 
     bitcoin: 15358.45
   })
 
-  expect(result).toBe(' (+0.00)')
+  expect(result).toBe(' (+0.00%)')
+})
+
+test('it appends', () => {
+  const result = price.calculateDifferenceString('tron', 0.03515186, {
+    tron: 0.03520883
+  })
+
+  expect(result).toBe(' (-0.16%)')
 })
