@@ -34,7 +34,7 @@ test('it appends the correct change in value when the price stays the same', () 
   expect(result).toBe(' (+0.00%)')
 })
 
-test('it appends', () => {
+test('it appends the corrent change in value for small coin prices', () => {
   const result = price.calculateDifferenceString('tron', 0.03515186, {
     tron: 0.03520883
   })
