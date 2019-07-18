@@ -1,6 +1,6 @@
 const CoinGecko = require('coingecko-api')
 const Redis = require('ioredis')
-const redis = new Redis()
+const redis = new Redis(process.env.REDIS_URL)
 
 const coinGeckoClient = new CoinGecko()
 
