@@ -1,8 +1,8 @@
 const CoinGecko = require('coingecko-api')
+const Redis = require('ioredis')
+const redis = new Redis()
 
 const coinGeckoClient = new CoinGecko()
-
-const previousValues = {}
 
 module.exports = {
   name: 'price',
@@ -25,16 +25,16 @@ module.exports = {
 
       let output = `$${coinValueAud} AUD`
 
+      const previousValue = await redis.hget('coins', coin)
       const differenceString = this.calculateDifferenceString(
-        coin,
         coinValueAud,
-        previousValues
+        previousValue
       )
       output = output.concat(differenceString)
 
       message.channel.send(`${output}.`)
 
-      previousValues[coin] = coinValueAud
+      await redis.hset('coins', coin, coinValueAud)
     } catch (err) {
       console.error(err.message)
       message.channel.send(`No results found for '${coin}'.`)
@@ -42,10 +42,8 @@ module.exports = {
 
     message.channel.stopTyping()
   },
-  calculateDifferenceString(coin, coinValueAud, previousValues) {
-    const previousValue = previousValues[coin]
-
-    if (!previousValue) {
+  calculateDifferenceString(coinValueAud, previousValue) {
+    if (!previousValue || !coinValueAud) {
       return ''
     }
 
