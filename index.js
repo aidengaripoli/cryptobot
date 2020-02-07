@@ -1,11 +1,16 @@
 const fs = require('fs')
 const Discord = require('discord.js')
+const CoinGecko = require('coingecko-api')
+const Redis = require('ioredis')
 require('dotenv').config()
 
-const { BOT_TOKEN } = process.env
+const { BOT_TOKEN, REDIS_URL } = process.env
+const REDIS_COINS_HASH = 'coins'
 const { prefix } = require('./config.json')
 
 const discordClient = new Discord.Client()
+const redis = new Redis(REDIS_URL)
+const coinGeckoClient = new CoinGecko()
 
 discordClient.commands = new Discord.Collection()
 const commandFiles = fs
@@ -21,8 +26,16 @@ for (const file of commandFiles) {
 const cooldowns = new Discord.Collection()
 
 discordClient.once('ready', () => {
+  initialiseCoinsList()
   console.log('ready')
 })
+
+const initialiseCoinsList = async () => {
+  const { data } = await coinGeckoClient.coins.list()
+  for (const coin of data) {
+    await redis.hset(REDIS_COINS_HASH, coin.symbol, coin.id)
+  }
+}
 
 discordClient.on('message', async message => {
   if (!message.content.startsWith(prefix) || message.author.bot) return

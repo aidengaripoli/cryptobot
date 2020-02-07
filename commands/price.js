@@ -2,6 +2,9 @@ const CoinGecko = require('coingecko-api')
 const Redis = require('ioredis')
 const redis = new Redis(process.env.REDIS_URL)
 
+const REDIS_COINS_HASH = 'coins'
+const REDIS_PREVIOUS_VALUES = 'prev_values'
+
 const coinGeckoClient = new CoinGecko()
 
 module.exports = {
@@ -14,18 +17,37 @@ module.exports = {
   async execute(message, args) {
     message.channel.startTyping()
 
-    const coin = args[0]
+    const userInput = args[0]
+    let coinId = null
+
+    // check if user input is a symbol, if so, use ID instead
+    // if not, attempt to fetch with user input
+    const symbolExists = await redis.hexists(REDIS_COINS_HASH, userInput)
+    if (symbolExists) {
+      coinId = await redis.hget(REDIS_COINS_HASH, userInput)
+    } else {
+      coinId = userInput
+    }
 
     try {
       const body = await coinGeckoClient.simple.price({
-        ids: coin,
+        ids: coinId,
         vs_currencies: 'aud'
       })
-      const coinValueAud = body.data[coin].aud
+
+      if (body.data[coinId].aud === undefined) {
+        throw new Error('Invalid API Response.')
+      }
+
+      if (body.data[coinId] === undefined) {
+        throw new Error('Coin does not exist.')
+      }
+
+      const coinValueAud = body.data[coinId].aud
 
       let output = `$${coinValueAud} AUD`
 
-      const previousValue = await redis.hget('coins', coin)
+      const previousValue = await redis.hget(REDIS_PREVIOUS_VALUES, coinId)
       const differenceString = this.calculateDifferenceString(
         coinValueAud,
         previousValue
@@ -34,10 +56,10 @@ module.exports = {
 
       message.channel.send(`${output}.`)
 
-      await redis.hset('coins', coin, coinValueAud)
+      await redis.hset(REDIS_PREVIOUS_VALUES, coinId, coinValueAud)
     } catch (err) {
-      console.error(err.message)
-      message.channel.send(`No results found for '${coin}'.`)
+      console.error(`${err.message} - ${coinId} - ${userInput}`)
+      message.channel.send(`No results found for '${coinId}'.`)
     }
 
     message.channel.stopTyping()
