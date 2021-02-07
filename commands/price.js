@@ -13,7 +13,6 @@ module.exports = {
   description: 'Coin price',
   args: true,
   usage: '<coin>',
-  cooldown: 5,
   async execute(message, args) {
     message.channel.startTyping()
 
