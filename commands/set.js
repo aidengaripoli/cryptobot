@@ -24,6 +24,7 @@ module.exports = {
         coinIds.push(coinId)
       } else {
         message.channel.send(`No results found for '${coinReq}'.`)
+        message.channel.stopTyping()
         return
       }
     }
